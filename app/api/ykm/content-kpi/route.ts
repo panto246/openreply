@@ -63,7 +63,12 @@ export async function GET(request: NextRequest) {
   const since = new Date(Date.now() - days * 86_400_000);
 
   const accounts = await prisma.instagramAccount.findMany({
-    where: { provider: "META", accessToken: { not: "" } },
+    where: {
+      OR: [
+        { provider: "META", accessToken: { not: "" } },
+        { provider: "ZERNIO", zernioAccountId: { not: null } },
+      ],
+    },
     select: {
       id: true,
       workspaceId: true,
@@ -81,19 +86,31 @@ export async function GET(request: NextRequest) {
   const posts: ContentKpiPost[] = [];
   const keywords: KeywordStats[] = [];
   const warnings: string[] = [];
+  // Per-account diagnostics, so an empty result is explainable.
+  const details: Array<{ account: string; provider: string; fetched: number; inWindow: number; newest: string | null }> = [];
 
   for (const account of selected) {
     try {
       const context = await createInstagramContext(account);
-      const media = (await getAllUserMedia({ context, max: MAX_MEDIA })).filter(
-        (m) => new Date(m.timestamp) >= since
-      );
+      const fetched = await getAllUserMedia({ context, max: MAX_MEDIA });
+      const media = fetched.filter((m) => new Date(m.timestamp) >= since);
+      details.push({
+        account: account.username,
+        provider: account.provider,
+        fetched: fetched.length,
+        inWindow: media.length,
+        newest: fetched[0]?.timestamp ?? null,
+      });
 
       const insights = await mapWithConcurrency(media, INSIGHTS_CONCURRENCY, async (m) => {
         try {
           return await getMediaInsights({ context, mediaId: m.id, metrics: insightMetrics(m, true) });
         } catch (err) {
-          if (err instanceof PermissionError) throw err;
+          // Zernio reports a not-yet-synced post as PermissionError; that is not fatal.
+          if (err instanceof PermissionError) {
+            if (account.provider === "META") throw err;
+            return null;
+          }
           // `follows` is not offered for every media type; retry without it.
           try {
             return await getMediaInsights({ context, mediaId: m.id, metrics: insightMetrics(m, false) });
@@ -146,6 +163,7 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       days,
       accounts: selected.map((a) => a.username),
+      details,
       posts,
       keywords,
       warnings,
