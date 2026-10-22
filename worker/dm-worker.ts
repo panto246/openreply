@@ -2,6 +2,7 @@ import { createDMWorker } from "@/lib/queue/dm-worker";
 import { recordWorkerHeartbeat } from "@/lib/ops/worker-health";
 import { reconcileComments } from "@/lib/polling/comment-reconciler";
 import { attachPendingNextReels } from "@/lib/automation/attach-next-reel";
+import { switchYkmCampaigns } from "@/lib/ykm/campaign-switch";
 import os from "node:os";
 
 const worker = createDMWorker();
@@ -14,6 +15,12 @@ const POLL_INTERVAL_MS = Number(
 );
 
 console.log("[DM Worker] Started");
+
+switchYkmCampaigns()
+  .then((changed) => {
+    if (changed > 0) console.log("[DM Worker] YKM campaigns switched:", changed);
+  })
+  .catch((error) => console.error("[DM Worker] YKM campaign switch failed:", error));
 
 async function heartbeat() {
   try {
