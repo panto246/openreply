@@ -1250,16 +1250,44 @@ async function processFollowUp(job: Job<ProcessFollowUpJob>): Promise<void> {
     return;
   }
 
+  const text = renderMessageWithoutLink({
+    message: automation.followUpMessage,
+    commenterName: commenterName ?? null,
+  });
+  const linkUrl = automation.followUpLinkUrl?.trim();
+
   try {
-    await sendDirectMessage({
-      context: accessToken,
-      instagramAccountId: automation.instagramAccount.instagramId,
-      userId: userId,
-      message: renderMessageWithoutLink({
-        message: automation.followUpMessage,
-        commenterName: commenterName ?? null,
-      }),
-    });
+    if (!linkUrl) {
+      await sendDirectMessage({
+        context: accessToken,
+        instagramAccountId: automation.instagramAccount.instagramId,
+        userId: userId,
+        message: text,
+      });
+      return;
+    }
+
+    // Link as a button; if Meta rejects the template, fall back to the link
+    // inline so the follow-up still carries it.
+    try {
+      await sendDirectMessageWithLinkButton({
+        context: accessToken,
+        instagramAccountId: automation.instagramAccount.instagramId,
+        userId: userId,
+        text,
+        buttons: [
+          { title: automation.followUpButtonLabel || "Open link", url: linkUrl },
+        ],
+      });
+    } catch (buttonError) {
+      if (!isTemplateRejection(buttonError)) throw buttonError;
+      await sendDirectMessage({
+        context: accessToken,
+        instagramAccountId: automation.instagramAccount.instagramId,
+        userId: userId,
+        message: `${text}\n${linkUrl}`,
+      });
+    }
   } catch (error) {
     console.log(
       "[DM Worker] Failed to send follow-up message:",

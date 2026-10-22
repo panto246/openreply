@@ -5,9 +5,36 @@ import {
   getUserMedia,
   type InstagramMedia,
 } from "@/lib/instagram/provider";
+import { matchKeywords } from "@/lib/utils/keyword-matcher";
 
 function isReel(media: InstagramMedia): boolean {
   return media.media_product_type === "REELS";
+}
+
+/**
+ * The caption text that carries the call to action. Captions say things like
+ * "Yorumlara MEBİ yazın", so when the caption mentions comments we only look at
+ * the words right after it; that keeps a keyword mentioned elsewhere in the
+ * caption from binding the wrong campaign.
+ */
+function callToActionText(caption: string): string {
+  const parts = caption.split(/yorum|comment/i).slice(1);
+  return parts.length > 0 ? parts.map((p) => p.slice(0, 40)).join(" ") : caption;
+}
+
+/**
+ * A campaign with keywords waits for the reel whose caption asks for one of
+ * those keywords, so several pending campaigns each land on their own reel.
+ * Any-word campaigns keep the original "earliest next reel" behaviour.
+ */
+function reelFitsCampaign(
+  reel: InstagramMedia,
+  automation: { keywords: string[]; matchAnyWord: boolean }
+): boolean {
+  if (automation.matchAnyWord || automation.keywords.length === 0) return true;
+  const caption = reel.caption?.trim();
+  if (!caption) return false;
+  return matchKeywords(callToActionText(caption), automation.keywords, true).matched;
 }
 
 export type AttachNextReelResult = {
@@ -70,9 +97,12 @@ export async function attachPendingNextReels(): Promise<AttachNextReelResult> {
     }
 
     for (const automation of automations) {
-      // The "next" reel = the earliest one posted after the campaign was created.
+      // The "next" reel = the earliest one posted after the campaign was created
+      // whose caption asks for this campaign's keyword.
       const nextReel = reels.find(
-        (reel) => new Date(reel.timestamp) > automation.createdAt
+        (reel) =>
+          new Date(reel.timestamp) > automation.createdAt &&
+          reelFitsCampaign(reel, automation)
       );
       if (!nextReel) continue;
 

@@ -49,6 +49,8 @@ const createAutomationSchema = z
     // Minutes to wait before the follow-up. Capped at 24h so it stays inside
     // Instagram's messaging window.
     followUpDelayMinutes: z.number().int().min(0).max(1440).optional().default(0),
+    followUpLinkUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+    followUpButtonLabel: z.string().max(20).optional().nullable(),
     publicReplyEnabled: z.boolean().optional().default(false),
     publicReplyMessage: z.string().max(1000).optional().nullable(),
     publicReplyMessages: z
@@ -110,6 +112,8 @@ const updateAutomationSchema = z.object({
   followUpEnabled: z.boolean().optional(),
   followUpMessage: z.string().max(1000).optional().nullable(),
   followUpDelayMinutes: z.number().int().min(0).max(1440).optional(),
+  followUpLinkUrl: z.union([z.string().url(), z.literal("")]).optional().nullable(),
+  followUpButtonLabel: z.string().max(20).optional().nullable(),
   publicReplyEnabled: z.boolean().optional(),
   publicReplyMessage: z.string().max(1000).optional().nullable(),
   publicReplyMessages: z.array(z.string().max(1000)).max(10).optional(),
@@ -406,6 +410,12 @@ export async function POST(request: NextRequest) {
       followUpDelayMinutes: parsed.data.followUpEnabled
         ? parsed.data.followUpDelayMinutes
         : 0,
+      followUpLinkUrl: parsed.data.followUpEnabled
+        ? parsed.data.followUpLinkUrl || null
+        : null,
+      followUpButtonLabel: parsed.data.followUpEnabled
+        ? parsed.data.followUpButtonLabel || null
+        : null,
       publicReplyEnabled: parsed.data.publicReplyEnabled,
       publicReplyMessages: parsed.data.publicReplyEnabled
         ? publicReplyList
@@ -505,7 +515,10 @@ export async function PATCH(request: NextRequest) {
   if (automationData.followUpEnabled === false) {
     automationData.followUpMessage = null;
     automationData.followUpDelayMinutes = 0;
+    automationData.followUpLinkUrl = null;
+    automationData.followUpButtonLabel = null;
   }
+  if (automationData.followUpLinkUrl === "") automationData.followUpLinkUrl = null;
   // Any-post / next-reel campaigns carry no specific post.
   if (automationData.matchAnyPost === true || automationData.pendingNextReel === true) {
     automationData.postId = null;

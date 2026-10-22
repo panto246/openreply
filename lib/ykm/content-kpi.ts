@@ -164,7 +164,9 @@ export function buildPost(
     shortcode: shortcodeFromUrl(media.permalink),
     publishedAt: media.timestamp,
     mediaType: media.media_product_type ?? media.media_type,
-    caption: media.caption?.trim().slice(0, 140) ?? null,
+    // Full caption: the panel matches the "yorumlara X yazın" call to action,
+    // which usually sits at the end.
+    caption: media.caption?.trim() || null,
     views: insights?.views ?? null,
     reach: insights?.reach ?? null,
     likes: media.like_count ?? null,
