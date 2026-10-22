@@ -1,0 +1,48 @@
+# Railway yayın tetikleyici (geçici, 22 Eki 2026).
+# Railway'in 21-22 Eki kesintisinde Hobby planında yayınlar durdu; o sırada
+# main'e gönderilen kod worker'a geçmedi. Bu görev 3 saatte bir worker'ın
+# başlama zamanına bakar: worker son koddan eskiyse main'e boş bir commit
+# atarak Railway'in otomatik yayınını tetikler (6 saatte en fazla bir kez).
+# Worker güncellenince hiçbir şey yapmaz; o zaman bu dosya silinebilir.
+name: Railway yayın tetikleyici
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tetikle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+
+      - name: Worker güncel mi?
+        id: kontrol
+        run: |
+          STARTED=$(curl -s https://openreply-beta-nine.vercel.app/api/health | jq -r '.checks.worker.heartbeat.startedAt // empty')
+          # Worker'ın alması gereken son gerçek kod commit'i (tetikleyici commit'ler hariç)
+          KOD=$(git log -1 --format=%cI --invert-grep --grep='^chore: Railway yeniden yayın tetikleyici')
+          SON_TETIK=$(git log -1 --format=%ct --grep='^chore: Railway yeniden yayın tetikleyici' || true)
+          echo "worker=$STARTED kod=$KOD son_tetik=$SON_TETIK"
+          if [ -z "$STARTED" ]; then echo "Worker zamanı okunamadı, atlanıyor"; echo "tetik=0" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$(date -d "$STARTED" +%s)" -ge "$(date -d "$KOD" +%s)" ]; then
+            echo "Worker güncel, yapılacak bir şey yok"; echo "tetik=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -n "$SON_TETIK" ] && [ $(( $(date +%s) - SON_TETIK )) -lt 21600 ]; then
+            echo "Son 6 saatte tetiklendi, bekleniyor"; echo "tetik=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "tetik=1" >> "$GITHUB_OUTPUT"
+
+      - name: Boş commit ile yayını tetikle
+        if: steps.kontrol.outputs.tetik == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: Railway yeniden yayın tetikleyici"
+          git push origin HEAD:main
