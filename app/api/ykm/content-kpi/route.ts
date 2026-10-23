@@ -105,17 +105,14 @@ export async function GET(request: NextRequest) {
       const insights = await mapWithConcurrency(media, INSIGHTS_CONCURRENCY, async (m) => {
         try {
           return await getMediaInsights({ context, mediaId: m.id, metrics: insightMetrics(m, true) });
-        } catch (err) {
-          // Zernio reports a not-yet-synced post as PermissionError; that is not fatal.
-          if (err instanceof PermissionError) {
-            if (account.provider === "META") throw err;
-            return null;
-          }
-          // `follows` is not offered for every media type; retry without it.
+        } catch {
+          // `follows` is not offered for every media type (e.g. reels). Meta rejects it with
+          // code 100, which the client also maps to PermissionError, so retry without it first.
           try {
             return await getMediaInsights({ context, mediaId: m.id, metrics: insightMetrics(m, false) });
           } catch (retryErr) {
-            if (retryErr instanceof PermissionError) throw retryErr;
+            // Zernio reports a not-yet-synced post as PermissionError; that is not fatal.
+            if (retryErr instanceof PermissionError && account.provider === "META") throw retryErr;
             warnings.push(`${account.username} ${m.id}: ${(retryErr as Error).message}`);
             return null;
           }
@@ -149,7 +146,7 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       const reason =
         err instanceof PermissionError
-          ? "insights permission missing — reconnect the account"
+          ? `insights permission missing — reconnect the account (${err.message})`
           : (err as Error).message;
       warnings.push(`${account.username}: ${reason}`);
     }
