@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       });
 
       // DMs can arrive any time after the post, so read from the window start.
-      const [automations, dms, clicks] = await Promise.all([
+      const [automations, dms, clicks, followUpClicks] = await Promise.all([
         prisma.automation.findMany({
           where: { instagramAccountId: account.id },
           select: { id: true, postId: true },
@@ -133,9 +133,13 @@ export async function GET(request: NextRequest) {
           where: { instagramAccountId: account.id, createdAt: { gte: since } },
           select: { id: true, automationId: true, recipientHash: true, ipHash: true },
         }),
+        prisma.followUpClick.findMany({
+          where: { instagramAccountId: account.id, createdAt: { gte: since } },
+          select: { id: true, automationId: true, recipientHash: true, ipHash: true },
+        }),
       ]);
       const postOf = new Map(automations.map((a) => [a.id, a.postId]));
-      const stats = groupDmStats(dms, clicks, (id) => postOf.get(id));
+      const stats = groupDmStats(dms, clicks, (id) => postOf.get(id), followUpClicks);
 
       media.forEach((m, i) =>
         posts.push(buildPost(account.username, m, insights[i], stats.get(`m:${m.id}`)))

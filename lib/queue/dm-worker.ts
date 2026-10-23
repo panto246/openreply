@@ -52,6 +52,7 @@ import {
 } from "@/lib/tracking/message";
 import { TRACKED_LINK_ORDER } from "@/lib/tracking/link-order";
 import { hashRecipientId } from "@/lib/tracking/server";
+import { followUpTrackedUrl } from "@/lib/ykm/follow-up-link";
 
 import { ZernioApiError } from "@/lib/zernio/client";
 
@@ -1254,7 +1255,10 @@ async function processFollowUp(job: Job<ProcessFollowUpJob>): Promise<void> {
     message: automation.followUpMessage,
     commenterName: commenterName ?? null,
   });
-  const linkUrl = automation.followUpLinkUrl?.trim();
+  // YKM: the button goes through /f/<id> so workshop-link taps are counted.
+  const linkUrl = automation.followUpLinkUrl?.trim()
+    ? followUpTrackedUrl(automation.id, userId)
+    : undefined;
 
   try {
     if (!linkUrl) {

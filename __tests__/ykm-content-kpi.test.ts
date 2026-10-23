@@ -6,6 +6,7 @@ import {
   insightMetrics,
   shortcodeFromUrl,
 } from "../lib/ykm/content-kpi";
+import { followUpTrackedUrl } from "../lib/ykm/follow-up-link";
 
 describe("ykm content kpi", () => {
   it("extracts the shortcode from reel, post and profile-scoped links", () => {
@@ -41,12 +42,23 @@ describe("ykm content kpi", () => {
         { id: "c4", automationId: "a2", recipientHash: hashRecipientId("u4"), ipHash: null },
         { id: "c5", automationId: "a2", recipientHash: null, ipHash: "ip8" },
       ],
-      postOf
+      postOf,
+      [
+        { id: "f1", automationId: "a1", recipientHash: hashRecipientId("u1"), ipHash: null },
+        { id: "f2", automationId: "a1", recipientHash: hashRecipientId("u1"), ipHash: null },
+        { id: "f3", automationId: "a2", recipientHash: hashRecipientId("u4"), ipHash: null },
+        { id: "f4", automationId: "a2", recipientHash: null, ipHash: "ip7" },
+      ]
     );
 
-    expect(stats.get("m:M1")).toEqual({ dmStarted: 2, dmSent: 1, linkClicks: 2 });
-    expect(stats.get("k:kat")).toEqual({ dmStarted: 1, dmSent: 1, linkClicks: 1 });
+    expect(stats.get("m:M1")).toEqual({ dmStarted: 2, dmSent: 1, linkClicks: 2, workshopClicks: 1 });
+    expect(stats.get("k:kat")).toEqual({ dmStarted: 1, dmSent: 1, linkClicks: 1, workshopClicks: 1 });
     expect(stats.size).toBe(2);
+  });
+
+  it("routes the follow-up button through the counting redirect", () => {
+    const url = followUpTrackedUrl("auto1", "u1", "https://or.example");
+    expect(url).toBe(`https://or.example/f/auto1?r=${hashRecipientId("u1")}`);
   });
 
   it("keeps missing insights as null instead of zero", () => {

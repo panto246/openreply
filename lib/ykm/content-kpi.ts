@@ -9,10 +9,7 @@
 // is traced back to that recipient's DM; older token-less clicks only count for
 // single-post campaigns.
 import { hashRecipientId } from "@/lib/tracking/server";
-import type {
-  InstagramMedia,
-  InstagramMediaInsights,
-} from "@/lib/meta/client";
+import type { InstagramMedia, InstagramMediaInsights } from "@/lib/meta/client";
 
 export interface DmRow {
   automationId: string;
@@ -35,6 +32,8 @@ export interface DmStats {
   dmSent: number;
   /** Unique people who tapped a tracked link in the DM. */
   linkClicks: number;
+  /** Unique people who tapped the follow-up link button (the workshop link). */
+  workshopClicks: number;
 }
 
 export interface ContentKpiPost extends Partial<DmStats> {
@@ -62,7 +61,8 @@ export interface KeywordStats extends DmStats {
 /** `https://www.instagram.com/reel/ABC123/?igsh=…` → `ABC123` (also /p/ and /tv/). */
 export function shortcodeFromUrl(url: string | null | undefined) {
   if (!url) return null;
-  const match = /instagram\.com\/(?:[\w.]+\/)?(?:reels?|p|tv)\/([A-Za-z0-9_-]+)/.exec(url);
+  const match =
+    /instagram\.com\/(?:[\w.]+\/)?(?:reels?|p|tv)\/([A-Za-z0-9_-]+)/.exec(url);
   return match?.[1] ?? null;
 }
 
@@ -70,13 +70,15 @@ export function normalizeKeyword(keyword: string) {
   return keyword.trim().toLocaleLowerCase("tr-TR");
 }
 
-export function isVideoLike(media: Pick<InstagramMedia, "media_type" | "media_product_type">) {
+export function isVideoLike(
+  media: Pick<InstagramMedia, "media_type" | "media_product_type">,
+) {
   return media.media_product_type === "REELS" || media.media_type === "VIDEO";
 }
 
 export function insightMetrics(
   media: Pick<InstagramMedia, "media_type" | "media_product_type">,
-  withFollows: boolean
+  withFollows: boolean,
 ) {
   const metrics = isVideoLike(media)
     ? ["views", "reach", "saved", "shares"]
@@ -94,11 +96,13 @@ const STARTED_EXCLUDED = new Set(["SKIPPED_NO_MATCH"]);
 export function groupDmStats(
   dms: DmRow[],
   clicks: ClickRow[],
-  postIdOf: (automationId: string) => string | null | undefined
+  postIdOf: (automationId: string) => string | null | undefined,
+  followUpClicks: ClickRow[] = [],
 ) {
   const started = new Map<string, Set<string>>();
   const sent = new Map<string, Set<string>>();
   const clickers = new Map<string, Set<string>>();
+  const workshopClickers = new Map<string, Set<string>>();
   const groupByRecipient = new Map<string, string>();
 
   const add = (map: Map<string, Set<string>>, group: string, who: string) => {
@@ -117,28 +121,37 @@ export function groupDmStats(
     if (!group) continue;
     groupByRecipient.set(
       `${dm.automationId}:${hashRecipientId(dm.commenterId)}`,
-      group
+      group,
     );
     if (!STARTED_EXCLUDED.has(dm.status)) add(started, group, dm.commenterId);
     if (dm.status === "SENT") add(sent, group, dm.commenterId);
   }
 
-  for (const click of clicks) {
-    const traced = click.recipientHash
-      ? groupByRecipient.get(`${click.automationId}:${click.recipientHash}`)
-      : undefined;
-    const postId = postIdOf(click.automationId);
-    const group = traced ?? (postId ? `m:${postId}` : null);
-    if (!group) continue;
-    const visitor = click.recipientHash
-      ? `r:${click.recipientHash}`
-      : click.ipHash
-        ? `ip:${click.ipHash}`
-        : `click:${click.id}`;
-    add(clickers, group, visitor);
-  }
+  const countClicks = (rows: ClickRow[], into: Map<string, Set<string>>) => {
+    for (const click of rows) {
+      const traced = click.recipientHash
+        ? groupByRecipient.get(`${click.automationId}:${click.recipientHash}`)
+        : undefined;
+      const postId = postIdOf(click.automationId);
+      const group = traced ?? (postId ? `m:${postId}` : null);
+      if (!group) continue;
+      const visitor = click.recipientHash
+        ? `r:${click.recipientHash}`
+        : click.ipHash
+          ? `ip:${click.ipHash}`
+          : `click:${click.id}`;
+      add(into, group, visitor);
+    }
+  };
+  countClicks(clicks, clickers);
+  countClicks(followUpClicks, workshopClickers);
 
-  const groups = new Set([...started.keys(), ...sent.keys(), ...clickers.keys()]);
+  const groups = new Set([
+    ...started.keys(),
+    ...sent.keys(),
+    ...clickers.keys(),
+    ...workshopClickers.keys(),
+  ]);
   return new Map<string, DmStats>(
     [...groups].map((group) => [
       group,
@@ -146,16 +159,17 @@ export function groupDmStats(
         dmStarted: started.get(group)?.size ?? 0,
         dmSent: sent.get(group)?.size ?? 0,
         linkClicks: clickers.get(group)?.size ?? 0,
+        workshopClicks: workshopClickers.get(group)?.size ?? 0,
       },
-    ])
+    ]),
   );
 }
 
 export function buildPost(
   account: string,
   media: InstagramMedia,
-  insights: InstagramMediaInsights & { follows?: number } | null,
-  dm: DmStats | undefined
+  insights: (InstagramMediaInsights & { follows?: number }) | null,
+  dm: DmStats | undefined,
 ): ContentKpiPost {
   return {
     account,

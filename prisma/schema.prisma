@@ -422,3 +422,20 @@ model PostbackDelivery {
   id String @id
   createdAt DateTime @default(now())
 }
+
+// YKM fork addition: taps on a campaign's follow-up link button (the workshop
+// link). Kept apart from TrackedLink so the campaign editor, which rewrites a
+// campaign's TrackedLinks, never touches it. Redirects via /f/<automationId>.
+model FollowUpClick {
+  id                 String   @id @default(cuid())
+  automationId       String
+  instagramAccountId String
+  // hashRecipientId of the DM recipient (from `?r=`); null for untraceable taps.
+  recipientHash      String?
+  ipHash             String?
+  userAgent          String?
+  createdAt          DateTime @default(now())
+
+  @@index([automationId])
+  @@index([instagramAccountId, createdAt])
+}
