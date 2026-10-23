@@ -51,6 +51,8 @@ export interface ContentKpiPost extends Partial<DmStats> {
   saved: number | null;
   shares: number | null;
   follows: number | null;
+  /** Names of the campaigns tied to this post. */
+  campaigns?: string[];
 }
 
 export interface KeywordStats extends DmStats {

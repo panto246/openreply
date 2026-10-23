@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       const [automations, dms, clicks, followUpClicks] = await Promise.all([
         prisma.automation.findMany({
           where: { instagramAccountId: account.id },
-          select: { id: true, postId: true },
+          select: { id: true, postId: true, name: true },
         }),
         prisma.dmLog.findMany({
           where: { instagramAccountId: account.id, createdAt: { gte: since } },
@@ -141,8 +141,14 @@ export async function GET(request: NextRequest) {
       const postOf = new Map(automations.map((a) => [a.id, a.postId]));
       const stats = groupDmStats(dms, clicks, (id) => postOf.get(id), followUpClicks);
 
+      // Campaign names carry the YKM lead magnet code ("lm-uslu · Üslü ifadeler").
+      const campaignsOf = (mediaId: string) =>
+        automations.filter((a) => a.postId === mediaId).map((a) => a.name);
       media.forEach((m, i) =>
-        posts.push(buildPost(account.username, m, insights[i], stats.get(`m:${m.id}`)))
+        posts.push({
+          ...buildPost(account.username, m, insights[i], stats.get(`m:${m.id}`)),
+          campaigns: campaignsOf(m.id),
+        })
       );
       for (const [group, s] of stats) {
         if (group.startsWith("k:")) keywords.push({ account: account.username, keyword: group.slice(2), ...s });
