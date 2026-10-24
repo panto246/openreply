@@ -53,6 +53,7 @@ import {
 import { TRACKED_LINK_ORDER } from "@/lib/tracking/link-order";
 import { hashRecipientId } from "@/lib/tracking/server";
 import { followUpTrackedUrl } from "@/lib/ykm/follow-up-link";
+import { YKM_DIRECT_LINKS } from "@/lib/ykm/direct-links";
 
 import { ZernioApiError } from "@/lib/zernio/client";
 
@@ -153,7 +154,9 @@ function buildLinkButtons(
   recipientToken: string
 ): { title: string; url: string }[] {
   return trackedLinks.slice(0, 3).map((link, index) => ({
-    url: buildTrackedUrl(link.slug, undefined, recipientToken),
+    url: YKM_DIRECT_LINKS
+      ? link.destinationUrl
+      : buildTrackedUrl(link.slug, undefined, recipientToken),
     title:
       (index === 0 ? primaryLabel : link.label) || link.label || "Open link",
   }));
@@ -171,6 +174,9 @@ function buildInlineLinkFallback(
   bodyText: string,
   recipientToken: string
 ): string {
+  if (YKM_DIRECT_LINKS) {
+    return [bodyText, ...trackedLinks.map((link) => link.destinationUrl)].join("\n");
+  }
   const base =
     renderMessageWithTracking({
       message,
@@ -1257,7 +1263,9 @@ async function processFollowUp(job: Job<ProcessFollowUpJob>): Promise<void> {
   });
   // YKM: the button goes through /f/<id> so workshop-link taps are counted.
   const linkUrl = automation.followUpLinkUrl?.trim()
-    ? followUpTrackedUrl(automation.id, userId)
+    ? YKM_DIRECT_LINKS
+      ? automation.followUpLinkUrl.trim()
+      : followUpTrackedUrl(automation.id, userId)
     : undefined;
 
   try {

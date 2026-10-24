@@ -51,8 +51,5 @@ export async function GET(request: NextRequest, { params }: RedirectRouteProps) 
     console.log("[Tracking] link click not recorded:", (error as Error).message);
   }
 
-  // A relative destination (e.g. /pdf/kat) points at this app itself.
-  return NextResponse.redirect(new URL(trackedLink.destinationUrl, request.url), {
-    status: 302,
-  });
+  return NextResponse.redirect(trackedLink.destinationUrl, { status: 302 });
 }

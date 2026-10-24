@@ -6,6 +6,9 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
+    // The upstream tests cover the tracked-link redirects; the YKM fork's
+    // direct-link default is switched off for them (lib/ykm/direct-links.ts).
+    env: { YKM_TRACKED_LINKS: "1" },
   },
   resolve: {
     alias: {
