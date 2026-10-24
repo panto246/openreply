@@ -31,20 +31,28 @@ export async function GET(request: NextRequest, { params }: RedirectRouteProps) 
     return NextResponse.redirect(new URL("/", request.url), { status: 302 });
   }
 
-  await prisma.linkClick.create({
-    data: {
-      workspaceId: trackedLink.workspaceId,
-      automationId: trackedLink.automationId,
-      instagramAccountId: trackedLink.automation.instagramAccountId,
-      trackedLinkId: trackedLink.id,
-      ipHash: hashClickIp(getRequestIp(request)),
-      recipientHash: parseRecipientToken(
-        new URL(request.url).searchParams.get("r")
-      ),
-      userAgent: request.headers.get("user-agent"),
-      referrer: request.headers.get("referer"),
-    },
-  });
+  try {
+    await prisma.linkClick.create({
+      data: {
+        workspaceId: trackedLink.workspaceId,
+        automationId: trackedLink.automationId,
+        instagramAccountId: trackedLink.automation.instagramAccountId,
+        trackedLinkId: trackedLink.id,
+        ipHash: hashClickIp(getRequestIp(request)),
+        recipientHash: parseRecipientToken(
+          new URL(request.url).searchParams.get("r")
+        ),
+        userAgent: request.headers.get("user-agent"),
+        referrer: request.headers.get("referer"),
+      },
+    });
+  } catch (error) {
+    // Counting must never stop the visitor from reaching the link.
+    console.log("[Tracking] link click not recorded:", (error as Error).message);
+  }
 
-  return NextResponse.redirect(trackedLink.destinationUrl, { status: 302 });
+  // A relative destination (e.g. /pdf/kat) points at this app itself.
+  return NextResponse.redirect(new URL(trackedLink.destinationUrl, request.url), {
+    status: 302,
+  });
 }
