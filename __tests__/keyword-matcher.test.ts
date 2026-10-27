@@ -301,3 +301,40 @@ describe("matchKeywords — diacritics", () => {
     expect(matchKeywords("иод", ["йод"], true).matched).toBe(false);
   });
 });
+
+describe("matchKeywords — Turkish", () => {
+  it("should fold the dotless ı on both sides", () => {
+    expect(matchKeywords("mebı", ["MEBİ"], true).matched).toBe(true);
+    expect(matchKeywords("analız lütfen", ["ANALİZ"], true).matched).toBe(true);
+    expect(matchKeywords("TAHMIN", ["tahmın"], true).matched).toBe(true);
+  });
+
+  it("should treat Turkish letters and case as equal", () => {
+    expect(matchKeywords("Kat", ["KAT"], true).matched).toBe(true);
+    expect(matchKeywords("uslu", ["ÜSLÜ"], true).matched).toBe(true);
+    expect(matchKeywords("kok", ["KÖK"], true).matched).toBe(true);
+    expect(matchKeywords("sure", ["SÜRE"], true).matched).toBe(true);
+  });
+
+  it("should accept plural, accusative and dative endings", () => {
+    expect(matchKeywords("katlar", ["KAT"], true).matched).toBe(true);
+    expect(matchKeywords("HATALAR lütfen", ["HATA"], true).matched).toBe(true);
+    expect(matchKeywords("kaynakları istiyorum", ["KAYNAK"], true).matched).toBe(true);
+    expect(matchKeywords("katı", ["KAT"], true).matched).toBe(true);
+    expect(matchKeywords("hatayı", ["HATA"], true).matched).toBe(true);
+    expect(matchKeywords("plana", ["PLAN"], true).matched).toBe(true);
+    expect(matchKeywords("KAT'ı", ["KAT"], true).matched).toBe(true);
+  });
+
+  it("should not match unrelated longer words", () => {
+    expect(matchKeywords("okul", ["OKU"], true).matched).toBe(false);
+    expect(matchKeywords("okudum", ["OKU"], true).matched).toBe(false);
+    expect(matchKeywords("katkı", ["KAT"], true).matched).toBe(false);
+    expect(matchKeywords("hatalarım", ["HATA"], true).matched).toBe(false);
+  });
+
+  it("should keep strict boundaries for numeric and non-Latin keywords", () => {
+    expect(matchKeywords("08a", ["08"], true).matched).toBe(false);
+    expect(matchKeywords("Клода", ["Клод"], true).matched).toBe(false);
+  });
+});

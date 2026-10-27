@@ -156,6 +156,49 @@ export function foldDiacritics(text: string): string {
 }
 
 /**
+ * Fold the Turkish dotless "ı" into "i".
+ *
+ * `foldDiacritics` already turns "İ" into "i" (it decomposes to I + a combining
+ * dot), but "ı" (U+0131) is a base letter with no decomposition, so it
+ * survives every other step. Turkish commenters type it freely, which made a
+ * "MEBİ" keyword miss every "mebı" comment. Applied to both sides after
+ * lowercasing.
+ */
+export function foldDotlessI(text: string): string {
+  return text.replace(/ı/g, "i");
+}
+
+/**
+ * Turkish inflection endings tolerated after a Latin-script keyword in
+ * whole-word mode, written in their folded form (ı→i, ü→u). Turkish is
+ * agglutinative, so a commenter answering a "KAT" call to action writes
+ * "katlar", "katı" or "HATALAR" just as often as the bare word, and each of
+ * those used to be dropped silently.
+ *
+ * The list is deliberately short — plural, accusative and dative only —
+ * because every extra ending widens what can trigger a campaign. Longest
+ * first so the alternation prefers "lari" over "lar".
+ */
+const TURKISH_SUFFIXES = [
+  "lari",
+  "leri",
+  "lar",
+  "ler",
+  "yi",
+  "yu",
+  "ya",
+  "ye",
+  "i",
+  "u",
+  "a",
+  "e",
+];
+
+function isLatinKeyword(cleanedKeyword: string): boolean {
+  return /^[\p{Script=Latin}\p{N}\s]+$/u.test(cleanedKeyword);
+}
+
+/**
  * Check if a comment text matches any of the given keywords.
  *
  * Both sides are stripped of special characters and folded for Latin
@@ -177,18 +220,22 @@ export function matchKeywords(
     return { matched: false, matchedKeyword: null };
   }
 
-  const cleanedText = foldDiacritics(
-    stripSpecialCharacters(normalizeArabicScript(commentText))
-  ).toLowerCase();
+  const cleanedText = foldDotlessI(
+    foldDiacritics(
+      stripSpecialCharacters(normalizeArabicScript(commentText))
+    ).toLowerCase()
+  );
 
   if (!cleanedText) {
     return { matched: false, matchedKeyword: null };
   }
 
   for (const keyword of keywords) {
-    const cleanedKeyword = foldDiacritics(
-      stripSpecialCharacters(normalizeArabicScript(keyword))
-    ).toLowerCase();
+    const cleanedKeyword = foldDotlessI(
+      foldDiacritics(
+        stripSpecialCharacters(normalizeArabicScript(keyword))
+      ).toLowerCase()
+    );
 
     if (!cleanedKeyword) continue;
 
@@ -207,11 +254,17 @@ export function matchKeywords(
         /[.*+?^${}()|[\]\\]/g,
         "\\$&"
       );
+      // Turkish endings only for Latin word keywords: a numeric code like
+      // "08" or a Cyrillic keyword keeps strict boundaries.
+      const suffix =
+        !numericLike && isLatinKeyword(compareKeyword)
+          ? `(?:${TURKISH_SUFFIXES.join("|")})?`
+          : "";
       // Unicode-aware "whole word": the keyword must not be flanked by another
       // letter or number. Lookarounds replace ASCII `\b`, which never fires
       // between two non-Latin characters.
       const regex = new RegExp(
-        `(?<![\\p{L}\\p{N}])${escapedKeyword}(?![\\p{L}\\p{N}])`,
+        `(?<![\\p{L}\\p{N}])${escapedKeyword}${suffix}(?![\\p{L}\\p{N}])`,
         "iu"
       );
       if (regex.test(compareText)) {
