@@ -85,6 +85,7 @@ export async function GET() {
     success: true,
     data: {
       ...(await getMemberPayload(context.workspaceId, context.role)),
+      currentUserId: context.userId,
     },
   });
 }

@@ -446,5 +446,7 @@
   "{name} Campaign Report": "Relatório da campanha {name}",
   "{type} post": "Publicação {type}",
   "”": "”",
-  "← Campaigns": "← Campanhas"
+  "← Campaigns": "← Campanhas",
+  "Remove {email} from this workspace?": "Remover {email} deste espaço de trabalho?",
+  "Could not remove member": "Não foi possível remover o membro"
 }

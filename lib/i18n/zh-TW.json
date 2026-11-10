@@ -446,5 +446,7 @@
   "{name} Campaign Report": "{name} 活動報表",
   "{type} post": "{type} 貼文",
   "”": "」",
-  "← Campaigns": "← 返回活動列表"
+  "← Campaigns": "← 返回活動列表",
+  "Remove {email} from this workspace?": "要將 {email} 從此工作區移除嗎？",
+  "Could not remove member": "無法移除成員"
 }

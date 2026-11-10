@@ -30,6 +30,7 @@ interface SettingsData {
 
 interface WorkspaceMembersData {
   currentUserRole: "OWNER" | "ADMIN" | "MEMBER";
+  currentUserId?: string;
   members: Array<{
     id: string;
     role: "OWNER" | "ADMIN" | "MEMBER";
@@ -109,6 +110,23 @@ export default function SettingsPage() {
     } else {
       setMemberError(payload.error ?? t("Could not invite member"));
     }
+    setBusy(null);
+  }
+
+  async function removeMember(memberId: string, email: string) {
+    if (!confirm(t("Remove {email} from this workspace?", { email }))) return;
+    setMemberError(null);
+    setBusy(`member:${memberId}`);
+    const res = await fetch("/api/workspace/members", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.success) {
+      setMemberError(payload.error ?? t("Could not remove member"));
+    }
+    await refreshMembers();
     setBusy(null);
   }
 
@@ -244,9 +262,28 @@ export default function SettingsPage() {
                 </p>
                 <p className="text-xs text-muted">{member.user.email}</p>
               </div>
-              <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted">
-                {label(member.role)}
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted">
+                  {label(member.role)}
+                </span>
+                {canManageMembers &&
+                member.role !== "OWNER" &&
+                member.user.id !== membersData?.currentUserId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeMember(
+                        member.id,
+                        member.user.email ?? member.user.name ?? t("Unknown member")
+                      )
+                    }
+                    disabled={busy === `member:${member.id}`}
+                    className="rounded-lg border border-error/20 px-3 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
+                  >
+                    {t("Remove")}
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
