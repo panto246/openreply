@@ -75,6 +75,12 @@ model Workspace {
   usagePeriodStart  DateTime @default(now())
   dmsSentThisPeriod Int      @default(0)
 
+  // YKM fork: per-company branding shown in the dashboard sidebar.
+  brandName    String?
+  logoUrl      String?
+  websiteUrl   String?
+  contactEmail String?
+
   zernioConnection  ZernioConnection?
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]

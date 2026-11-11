@@ -182,6 +182,24 @@ export async function GET(request: NextRequest) {
   const clicksThisMonth = countUniqueClicks(clickRowsThisMonth);
   const totalClicks = countUniqueClicks(allClickRows);
 
+  // YKM fork: people who tapped the follow-up (workshop) button, counted once
+  // each; taps without a recipient token count individually.
+  const workspaceAutomationIds = (
+    await prisma.automation.findMany({
+      where: { workspaceId, ...accountFilter },
+      select: { id: true },
+    })
+  ).map((a) => a.id);
+  const followUpRows = workspaceAutomationIds.length
+    ? await prisma.followUpClick.findMany({
+        where: { automationId: { in: workspaceAutomationIds } },
+        select: { id: true, recipientHash: true },
+      })
+    : [];
+  const totalFollowUpClicks = new Set(
+    followUpRows.map((row) => row.recipientHash ?? row.id)
+  ).size;
+
   const monthlyStatusSummary = summarizeDmStatuses(
     dmStatusCountsThisMonth.map((row) => ({
       status: row.status,
@@ -219,6 +237,7 @@ export async function GET(request: NextRequest) {
       totalDMs,
       clicksThisMonth,
       totalClicks,
+      totalFollowUpClicks,
       ctrThisMonth: calculateCtr(clicksThisMonth, dmsSentMonth),
       topKeywords,
       dailyDMs,

@@ -1,6 +1,7 @@
 "use client";
 
 import LanguageSwitcher from "@/components/language-switcher";
+import CompanyBrandingForm from "@/components/company-branding-form";
 import { useI18n } from "@/lib/i18n/provider";
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
@@ -158,6 +159,8 @@ export default function SettingsPage() {
       <Suspense fallback={null}>
         <InstagramConnectNotice />
       </Suspense>
+
+      <CompanyBrandingForm />
 
       <section className="panel rounded p-4 sm:p-6 space-y-3">
         <h2 className="text-base font-semibold">{t("Interface language")}</h2>

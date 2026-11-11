@@ -27,16 +27,55 @@ export default async function DashboardLayout({
     session.user.id,
     session.user.email
   );
-  const accounts = await prisma.instagramAccount.findMany({
-    where: { workspaceId: workspace.id },
-    orderBy: { connectedAt: "desc" },
-    select: { username: true },
-  });
+  const [accounts, memberships] = await Promise.all([
+    prisma.instagramAccount.findMany({
+      where: { workspaceId: workspace.id },
+      orderBy: { connectedAt: "desc" },
+      select: { username: true },
+    }),
+    prisma.workspaceMember.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            brandName: true,
+            logoUrl: true,
+            websiteUrl: true,
+            contactEmail: true,
+            _count: { select: { automations: true } },
+          },
+        },
+      },
+    }),
+  ]);
+  const companies = memberships.map(({ workspace: w }) => ({
+    id: w.id,
+    name: w.name,
+    brandName: w.brandName,
+    logoUrl: w.logoUrl,
+    websiteUrl: w.websiteUrl,
+    contactEmail: w.contactEmail,
+    campaignCount: w._count.automations,
+  }));
+  const company =
+    companies.find((c) => c.id === workspace.id) ?? {
+      id: workspace.id,
+      name: workspace.name,
+      brandName: workspace.brandName,
+      logoUrl: workspace.logoUrl,
+      websiteUrl: workspace.websiteUrl,
+      contactEmail: workspace.contactEmail,
+      campaignCount: 0,
+    };
 
   return (
     <I18nProvider locale={locale}>
       <DashboardShell
-        workspaceName={workspace.name}
+        company={company}
+        companies={companies}
         instagramUsername={accounts[0]?.username ?? null}
         instagramAccountCount={accounts.length}
       >

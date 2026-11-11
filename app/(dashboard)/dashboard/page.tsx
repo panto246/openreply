@@ -25,6 +25,7 @@ interface DashboardStats {
   totalDMs: number;
   clicksThisMonth: number;
   totalClicks: number;
+  totalFollowUpClicks?: number;
   ctrThisMonth: number;
   instagramAccounts: AccountOption[];
   selectedInstagramAccountId: string | null;
@@ -70,9 +71,9 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="panel rounded p-5 h-32">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="panel p-5 h-32">
               <div className="w-10 h-10 rounded bg-surface-hover" />
               <div className="mt-4 h-6 w-16 bg-surface-hover rounded" />
               <div className="mt-2 h-4 w-24 bg-surface-hover/60 rounded" />
@@ -92,7 +93,7 @@ export default function DashboardPage() {
       {/* Greeting header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {t("Hello, {name}!", { name: stats?.userName ?? t("there") })}
           </h1>
           <p className="mt-1 text-sm text-muted">
@@ -115,23 +116,50 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard
-          label={t("Active Campaigns")}
-          value={stats?.activeAutomations ?? 0}
-        />
-        <StatCard label={t("DMs Sent")} value={stats?.dmsSentMonth ?? 0} />
-        <StatCard label={t("Skipped")} value={stats?.dmsSkippedMonth ?? 0} />
-        <StatCard label={t("Failed")} value={stats?.dmsFailedMonth ?? 0} />
-        <StatCard label={t("Clicks")} value={stats?.clicksThisMonth ?? 0} />
-        <StatCard label={t("CTR")} value={`${stats?.ctrThisMonth ?? 0}%`} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard label={t("DMs sent")} value={stats?.totalDMs ?? 0} trend={t("{count} contacts", { count: stats?.contactsCount ?? 0 })} />
+        <StatCard label={t("Link clicks")} value={stats?.totalClicks ?? 0} />
+        <StatCard label={t("Follow-up clicks")} value={stats?.totalFollowUpClicks ?? 0} />
+        <StatCard label={t("Active Campaigns")} value={stats?.activeAutomations ?? 0} />
+      </div>
+
+      {/* Journey: DM → link click → follow-up click */}
+      <div className="panel p-5 sm:p-6">
+        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold text-foreground">{t("The journey")}</h2>
+          <span className="text-sm text-muted">{t("From comment to follow-up, all campaigns")}</span>
+        </div>
+        <div className="space-y-3">
+          {[
+            { name: t("Got the DM"), value: stats?.totalDMs ?? 0 },
+            { name: t("Opened the link"), value: stats?.totalClicks ?? 0 },
+            { name: t("Tapped the follow-up"), value: stats?.totalFollowUpClicks ?? 0 },
+          ].map((row, index, rows) => {
+            const top = Math.max(rows[0].value, 1);
+            return (
+              <div key={row.name} className="grid grid-cols-[9rem_minmax(0,1fr)_3.5rem] items-center gap-3 sm:grid-cols-[11rem_minmax(0,1fr)_4rem]">
+                <span className="text-sm font-medium text-foreground">{row.name}</span>
+                <div className="h-7 rounded-lg bg-surface-hover">
+                  <div
+                    className="h-7 rounded-lg bg-accent"
+                    style={{
+                      width: `${row.value ? Math.max((row.value / top) * 100, 1.5) : 0}%`,
+                      opacity: 1 - index * 0.2,
+                    }}
+                  />
+                </div>
+                <span className="text-right text-base font-semibold">{row.value}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Chart + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 sm:gap-6">
         {/* 7-Day Chart */}
-        <div className="lg:col-span-3 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-6">{t("DMs — Last 7 Days")}</h2>
+        <div className="lg:col-span-3 panel p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-foreground mb-6">{t("DMs — Last 7 Days")}</h2>
           <div className="flex items-end gap-1.5 h-40 sm:gap-2">
             {stats?.dailyDMs.map((day) => (
               <div key={label(day.date)} className="min-w-0 flex-1 h-full flex flex-col items-center gap-2">
@@ -140,7 +168,7 @@ export default function DashboardPage() {
                     the bar sits in a wrapper that fills the column's free space. */}
                 <div className="w-full min-h-0 flex-1 flex items-end">
                   <div
-                    className="w-full rounded-sm bg-accent min-h-[4px]"
+                    className="w-full rounded-t-md rounded-b-sm bg-accent min-h-[4px]"
                     style={{ height: `${Math.max((day.count / maxDM) * 100, 4)}%` }}
                   />
                 </div>
@@ -154,8 +182,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Keywords */}
-        <div className="lg:col-span-1 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4">{t("Top Keywords")}</h2>
+        <div className="lg:col-span-1 panel p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-foreground mb-4">{t("Top Keywords")}</h2>
           <div className="space-y-3">
             {stats?.topKeywords.length === 0 && (
               <p className="text-sm text-muted py-8">{t("No keyword matches yet")}</p>
@@ -172,8 +200,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="lg:col-span-2 panel rounded p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4">{t("Recent Activity")}</h2>
+        <div className="lg:col-span-2 panel p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-foreground mb-4">{t("Recent Activity")}</h2>
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {stats?.recentLogs.length === 0 && (
               <p className="text-sm text-muted text-center py-8">{t("No activity yet")}</p>

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import type { Workspace, WorkspaceRole } from "@/app/generated/prisma/client";
+import { readActiveWorkspaceId } from "@/lib/ykm/active-workspace";
 
 function normalizeInviteEmail(email: string) {
   return email.trim().toLowerCase();
@@ -54,11 +55,18 @@ export async function getWorkspaceMembership(userId: string): Promise<{
   workspace: Workspace;
   role: WorkspaceRole;
 } | null> {
-  const membership = await prisma.workspaceMember.findFirst({
-    where: { userId },
-    include: { workspace: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const preferred = await readActiveWorkspaceId();
+  const membership =
+    (preferred &&
+      (await prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId: preferred },
+        include: { workspace: true },
+      }))) ||
+    (await prisma.workspaceMember.findFirst({
+      where: { userId },
+      include: { workspace: true },
+      orderBy: { createdAt: "asc" },
+    }));
 
   if (!membership) return null;
 

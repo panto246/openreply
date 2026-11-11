@@ -299,13 +299,13 @@ export default function CampaignsPage() {
           )}
           <Link
             href="/campaigns/import"
-            className="flex-1 rounded border border-border px-4 py-2 text-center text-sm font-medium text-muted hover:text-foreground sm:flex-none"
+            className="flex min-h-11 flex-1 items-center justify-center rounded-xl border border-border bg-surface px-5 text-center text-sm font-medium text-foreground hover:border-border-hover sm:flex-none"
           >
             {t("Import")}
           </Link>
           <Link
             href="/campaigns/new"
-            className="flex-1 rounded bg-accent px-4 py-2 text-center text-sm font-medium text-white hover:bg-accent-hover sm:flex-none"
+            className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-accent px-5 text-center text-sm font-semibold text-white hover:bg-accent-hover sm:flex-none"
           >
             {t("New Campaign")}
           </Link>
@@ -319,9 +319,9 @@ export default function CampaignsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("Search campaigns by name, keyword, or message…")}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
+            className="min-h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none"
           />
-          <div className="inline-flex shrink-0 rounded-lg bg-surface p-1">
+          <div className="inline-flex shrink-0 rounded-xl bg-border p-1">
             {(["all", "active", "paused"] as const).map((s) => (
               <button
                 key={label(s)}
@@ -329,7 +329,7 @@ export default function CampaignsPage() {
                 onClick={() => setStatusFilter(s)}
                 className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${
                   statusFilter === s
-                    ? "bg-background font-medium text-foreground ring-1 ring-accent/40"
+                    ? "bg-surface font-semibold text-foreground shadow-sm"
                     : "text-muted hover:text-foreground"
                 }`}
               >
@@ -371,11 +371,19 @@ export default function CampaignsPage() {
           <div
             key={auto.id}
             onClick={() => router.push(`/campaigns/${auto.id}`)}
-            className="panel rounded p-4 hover:border-border-hover transition-all cursor-pointer"
+            className="panel p-4 sm:p-5 hover:border-border-hover transition-all cursor-pointer"
           >
             {/* Wraps rather than compressing: on a phone the action buttons drop
                 to their own line instead of squeezing the campaign summary. */}
-            <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              {!(auto.postId && thumbnails[auto.postId]) && (
+                <span
+                  aria-hidden="true"
+                  className="flex h-[106px] w-[60px] shrink-0 items-center justify-center rounded-xl bg-surface-hover text-[10px] text-muted"
+                >
+                  {t("No image")}
+                </span>
+              )}
               {auto.postId && thumbnails[auto.postId] && (
                 videoUrl ? (
                   <button
@@ -391,7 +399,7 @@ export default function CampaignsPage() {
                     <img
                       src={thumbnails[auto.postId]}
                       alt={t("Campaign reel")}
-                      className="w-12 h-12 rounded object-cover border border-border hover:border-border-hover"
+                      className="h-[106px] w-[60px] rounded-xl object-cover border border-border hover:border-border-hover"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
                       }}
@@ -409,7 +417,7 @@ export default function CampaignsPage() {
                     <img
                       src={thumbnails[auto.postId]}
                       alt={t("Campaign post")}
-                      className="w-12 h-12 rounded object-cover border border-border"
+                      className="h-[106px] w-[60px] rounded-xl object-cover border border-border"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
                       }}
@@ -419,7 +427,7 @@ export default function CampaignsPage() {
               )}
               <div className="min-w-[12rem] flex-1">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h3 className="text-sm font-semibold truncate">{auto.name}</h3>
+                  <h3 className="text-base font-semibold truncate">{auto.name}</h3>
                   <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted">
                     @{auto.instagramAccount.username}
                   </span>
@@ -461,46 +469,32 @@ export default function CampaignsPage() {
                   ))}
                 </div>
 
-                {/* DM preview */}
-                <p className="text-sm text-muted truncate">&ldquo;{auto.dmMessage}{t("”")}</p>
+              </div>
 
-                {/* Tracked link sent */}
-                {auto.trackedLinks[0]?.trackedUrl && (
-                  <p className="mt-2 truncate font-mono text-xs text-zinc-500">
-                    {auto.trackedLinks[0].trackedUrl}
-                  </p>
-                )}
-
-                {/* Stats */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-zinc-500">
-                  <span className="font-medium text-foreground">
-                    {auto._count.dmLogs} {t("runs")}
-                  </span>
-                  <span>·</span>
-                  <span className="font-medium text-foreground">
-                    {auto.analytics.ctr}{t("% CTR")}
-                  </span>
-                  <span>·</span>
-                  <span>{auto.analytics.sent} {t("sent")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.skipped} {t("skipped")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.failed} {t("failed")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.clicks} {t("clicks")}</span>
+              {/* Stats */}
+              <div className="grid min-w-[15rem] flex-1 grid-cols-3 gap-3 sm:max-w-xs">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold tracking-tight">{auto.analytics.sent}</span>
+                  <span className="text-xs text-muted">{t("DMs sent")}</span>
                 </div>
-
-                {auto.analytics.topKeywords.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {auto.analytics.topKeywords.map((keyword) => (
-                      <span
-                        key={keyword.keyword}
-                        className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted"
-                      >
-                        {keyword.keyword}: {keyword.count}
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold tracking-tight">{auto.analytics.clicks}</span>
+                  <span className="text-xs text-muted">{t("Clicks")}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span
+                    className={`text-2xl font-bold tracking-tight ${
+                      auto.analytics.ctr >= 15 ? "text-success" : ""
+                    }`}
+                  >
+                    {auto.analytics.clicks > 0 ? `%${auto.analytics.ctr}` : "—"}
+                  </span>
+                  <span className="text-xs text-muted">{t("CTR")}</span>
+                </div>
+                {(auto.analytics.failed > 0 || auto.analytics.skipped > 0) && (
+                  <span className="col-span-3 text-xs text-warning">
+                    {auto.analytics.failed} {t("failed")} · {auto.analytics.skipped} {t("skipped")}
+                  </span>
                 )}
               </div>
 

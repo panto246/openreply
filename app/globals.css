@@ -4,19 +4,22 @@
    Plain and functional. No gradients, glass, glow, or animation. */
 
 @theme inline {
-  --color-background: #ffffff;
-  --color-foreground: #18181b;
-  --color-surface: #f7f7f8;
-  --color-surface-hover: #efeff1;
-  --color-border: #e4e4e7;
-  --color-border-hover: #d4d4d8;
-  --color-muted: #71717a;
-  --color-accent: #f97316;
-  --color-accent-hover: #ea580c;
-  --color-success: #16a34a;
-  --color-error: #dc2626;
-  --color-warning: #d97706;
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* YKM fork: calmer, warmer dashboard — light grey ground, white cards,
+     one blue accent (the YKM funnel blue). */
+  --color-background: #f5f5f7;
+  --color-foreground: #1d1d1f;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f0f3;
+  --color-border: #e8e8ed;
+  --color-border-hover: #d2d2d7;
+  --color-muted: #6e6e73;
+  --color-accent: #0071e3;
+  --color-accent-hover: #0060c0;
+  --color-accent-soft: #eaf2fd;
+  --color-success: #1a7f37;
+  --color-error: #d70015;
+  --color-warning: #b25000;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, monospace;
 }
 
@@ -59,6 +62,8 @@ select:focus-visible {
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* Kept as no-op aliases so existing markup degrades to plain surfaces

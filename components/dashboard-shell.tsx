@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/sidebar";
+import Sidebar, { type SidebarCompany } from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
 
 interface DashboardShellProps {
   children: React.ReactNode;
-  workspaceName: string;
+  company: SidebarCompany;
+  companies: SidebarCompany[];
   instagramUsername: string | null;
   instagramAccountCount: number;
 }
 
 export default function DashboardShell({
   children,
-  workspaceName,
+  company,
+  companies,
   instagramUsername,
   instagramAccountCount,
 }: DashboardShellProps) {
@@ -26,7 +28,9 @@ export default function DashboardShell({
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        workspaceName={workspaceName}
+        company={company}
+        companies={companies}
+        instagramUsername={instagramUsername}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -40,7 +44,7 @@ export default function DashboardShell({
             allow horizontal scrolling too, which lets a wide child drag the
             whole page sideways on a phone. */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="px-4 lg:px-8 py-5 sm:py-6 max-w-7xl mx-auto">
+          <div className="px-4 lg:px-10 py-5 sm:py-8 max-w-7xl mx-auto">
             {children}
           </div>
         </main>

@@ -4,12 +4,13 @@ import ptBR from "../lib/i18n/pt-BR.json";
 import zhTW from "../lib/i18n/zh-TW.json";
 
 describe("interface translations", () => {
-  it("keeps English as the default for absent or unsupported preferences", () => {
+  it("uses Turkish (YKM fork default) for absent or unsupported preferences", () => {
     for (const value of [undefined, null, "", "fr", "zh-CN", "../zh-TW", "pt", "pt-PT"]) {
-      expect(resolveLocale(value)).toBe("en");
+      expect(resolveLocale(value)).toBe("tr");
     }
     expect(resolveLocale("zh-TW")).toBe("zh-TW");
     expect(resolveLocale("pt-BR")).toBe("pt-BR");
+    expect(resolveLocale("en")).toBe("en");
   });
 
   it("renders both interface languages from the same keys", () => {
