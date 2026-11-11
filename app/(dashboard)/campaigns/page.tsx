@@ -487,7 +487,7 @@ export default function CampaignsPage() {
                       auto.analytics.ctr >= 15 ? "text-success" : ""
                     }`}
                   >
-                    {auto.analytics.clicks > 0 ? `%${auto.analytics.ctr}` : "—"}
+                    {auto.analytics.clicks > 0 ? `%${auto.analytics.ctr.toLocaleString("tr-TR")}` : "—"}
                   </span>
                   <span className="text-xs text-muted">{t("CTR")}</span>
                 </div>

@@ -182,7 +182,7 @@ export default function Sidebar({
           >
             <CompanyMark company={company} size={44} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-bold text-foreground">
+              <span className="line-clamp-2 text-sm font-bold leading-tight text-foreground">
                 {displayName(company)}
               </span>
               {site && <span className="truncate text-xs text-muted">{site}</span>}
