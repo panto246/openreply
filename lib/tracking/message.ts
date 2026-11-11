@@ -60,7 +60,11 @@ export function buildTrackedUrl(
     baseUrl ??
     (typeof window !== "undefined"
       ? window.location.origin
-      : process.env.NEXTAUTH_URL ?? "http://localhost:3000");
+      : // YKM fork: TRACKING_BASE_URL lets DM links use a custom domain
+        // (link.yasinkurtmatematik.com) without moving NEXTAUTH_URL / sign-in.
+        process.env.TRACKING_BASE_URL ??
+        process.env.NEXTAUTH_URL ??
+        "http://localhost:3000");
 
   const url = `${resolvedBaseUrl.replace(/\/$/, "")}/r/${slug}`;
   return recipientToken ? `${url}?r=${recipientToken}` : url;
